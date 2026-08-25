@@ -1,0 +1,12 @@
+{
+  "df": "df-communication-twilio-adapter",
+  "ts": "2026-06-09T06:54:28.026545+00:00",
+  "has_src": true,
+  "parse_ok": true,
+  "has_tests": true,
+  "test_ran": true,
+  "tests_passed": true,
+  "code_hash": "46e163bc413b0e5c",
+  "python": "3.14.4",
+  "crux": "[CRUX-MK]"
+}

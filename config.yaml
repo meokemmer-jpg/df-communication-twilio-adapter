@@ -1,159 +1,148 @@
-# DF-COMMUNICATION-TWILIO-ADAPTER Configuration [CRUX-MK]
-# Welle-53 Real-API-Wave-1 Top-5-Priority Foundation-DF
-# Twilio SMS + WhatsApp API Adapter (Send-Only)
-
 df_id: DF-COMMUNICATION-TWILIO-ADAPTER
 df_name: communication-twilio-adapter
 version: 0.1.0-SKELETON
 status: SKELETON-CONDITIONAL
 crux-mk: true
+description: 'Real-API-Adapter fuer Twilio Messaging (SMS + WhatsApp Business).
 
-description: |
-  Real-API-Adapter fuer Twilio Messaging (SMS + WhatsApp Business).
   Pro Communication-Operation: POST /v1/Accounts/{Sid}/Messages.
+
   ENV-Var-Gated Default-Disabled. KEIN Real-Send ohne PHRONESIS_TICKET (Live-Mode).
+
   Test-Credentials (AC_test_*) erlaubt ohne Phronesis.
 
-# === Default-Action (per ausreden-schutz.md Schicht 2) ===
-
+  '
 default_action:
-  description: "Twilio SMS/WhatsApp Send mit Tenant-Isolation + Rate-Limit pro Hotel"
+  description: Twilio SMS/WhatsApp Send mit Tenant-Isolation + Rate-Limit pro Hotel
   rho_per_run_eur: 80
   rho_validation_source: unvalidated
   block_gates:
-    - gate_id: K13_PAV
-      block_reason: "Q_0-Naehe: Gast-Kommunikation, PHRONESIS_TICKET Live-Mode Pflicht"
-      false_block_cost_eur: 50
-      legitimate_block_condition: "Live-Mode UND PHRONESIS_TICKET fehlt"
-    - gate_id: K11
-      block_reason: "Cross-Hotel-Send verboten ohne Tenant-Isolation"
-      false_block_cost_eur: 100
-      legitimate_block_condition: "Tenant-Context (hotel_id) fehlt"
-  graceful_degradation_path: "Mock-SMS mit standard-Message-SID + status=queued"
-
-# === Tier-2 Pflicht-Check ===
-
+  - gate_id: K13_PAV
+    block_reason: 'Q_0-Naehe: Gast-Kommunikation, PHRONESIS_TICKET Live-Mode Pflicht'
+    false_block_cost_eur: 50
+    legitimate_block_condition: Live-Mode UND PHRONESIS_TICKET fehlt
+  - gate_id: K11
+    block_reason: Cross-Hotel-Send verboten ohne Tenant-Isolation
+    false_block_cost_eur: 100
+    legitimate_block_condition: Tenant-Context (hotel_id) fehlt
+  graceful_degradation_path: Mock-SMS mit standard-Message-SID + status=queued
 tier_2_check:
-  lambda_per_month_estimate: 600  # ~20/Tag pro Hotel (Pre-Stay + Stay + Post-Stay)
-  narrow_scope: "Twilio Messages API (SMS + WhatsApp Send-Only)"
-  determinism: 0.90
+  lambda_per_month_estimate: 600
+  narrow_scope: Twilio Messages API (SMS + WhatsApp Send-Only)
+  determinism: 0.9
   rollback_seconds: 30
   test_coverage_target: 0.85
-  k0_protected: false  # Send-only, kein K_0
+  k0_protected: false
   q0_measurable: true
   escalation_after_n_fails: 3
   rho_budget_eur_day: 3
   audit_trail: branch-hub/audit/df-communication-twilio-adapter.jsonl
-
-# === K11-K16 ===
-
 k11_cascade_containment:
   cascade_isolation: hard
   failure_blast_radius: 1
-  dependency_dlq_strategy: "skip-message-resume-naechste + DLQ-jsonl-log"
-
+  dependency_dlq_strategy: skip-message-resume-naechste + DLQ-jsonl-log
 k12_distillation_resistenz:
   output_feeds_into_training: false
   provenance_required_in_output: true
-  non_llm_validation_layer: "E.164-Phone-Format-Check + Message-Length-Limit (1600 GSM-7 / 70 UCS-2)"
-
+  non_llm_validation_layer: E.164-Phone-Format-Check + Message-Length-Limit (1600
+    GSM-7 / 70 UCS-2)
 k13_independent_ground_truth:
-  external_anchor_type: "twilio_api + github_api"
-  external_anchor_validation_frequency: "weekly (Account-Balance + Phone-Number-Status)"
+  external_anchor_type: twilio_api + github_api
+  external_anchor_validation_frequency: weekly (Account-Balance + Phone-Number-Status)
   pre_action_domain_check:
-    env_tag: "test|live via TWILIO_ACCOUNT_SID-Praefix (AC_test_ vs AC_*)"
-    mount_point: "branch-hub/communication/twilio/hotels/"
-    network_region: "global"
+    env_tag: test|live via TWILIO_ACCOUNT_SID-Praefix (AC_test_ vs AC_*)
+    mount_point: branch-hub/communication/twilio/hotels/
+    network_region: global
   pre_action_backup_check:
-    backup_status: "Outbound Idempotency-Keys persistent"
-    replication_lag: "n/a"
+    backup_status: Outbound Idempotency-Keys persistent
+    replication_lag: n/a
   pre_action_blast_radius_check:
-    blast_radius: "max 1 Message pro Run + Rate-Limit 10/sec pro Hotel"
-    reversibility_class: "non-reversible (Send-Only)"
-
+    blast_radius: max 1 Message pro Run + Rate-Limit 10/sec pro Hotel
+    reversibility_class: non-reversible (Send-Only)
 k14_human_override_decay:
   override_complexity: requires_specialist
   override_documentation_freshness_days: 7
   martin_review_cadence: pro Live-Mode-Aktivierung
   bus_factor_handover_drilled: false
-
 k15_entropy_budget:
   entropy_added_loc_estimate: 250
   entropy_added_concepts:
-    - TwilioAdapter
-    - MessageRequest
-    - PhoneNumberValidator
-    - RateLimitBucket
-  entropy_justified_by_rho: "Gast-Communication-Pipeline rho 80k/J (Pre-Stay Reminder + Upsell)"
-  entropy_subtractive_potential: "ersetzt manuelle Hotel-Front-Desk-SMS"
-
+  - TwilioAdapter
+  - MessageRequest
+  - PhoneNumberValidator
+  - RateLimitBucket
+  entropy_justified_by_rho: Gast-Communication-Pipeline rho 80k/J (Pre-Stay Reminder
+    + Upsell)
+  entropy_subtractive_potential: ersetzt manuelle Hotel-Front-Desk-SMS
 k16_concurrent_spawn_mutex:
   concurrent_spawn_protection: both
   lock_dir: /tmp/df-communication-twilio-adapter.lock
   lock_stale_age_h: 6
   engine_pgrep_check: true
   lock_release_on: EXIT_INT_TERM
-
-# === LC1-LC5 ===
-
 lose_coupling:
   LC1_graceful_degradation:
     degradation_modes:
-      - full              # SMS + WhatsApp live
-      - degraded_sms_only # WhatsApp-API unreachable
-      - degraded_test_mode # nur Twilio-Test-Credentials
-      - standalone        # Mock-Adapter
+    - full
+    - degraded_sms_only
+    - degraded_test_mode
+    - standalone
     degradation_test_required: true
-
   LC2_direct_mode:
     direct_mode_available: true
     direct_mode_capability: 0.85
-    direct_mode_trigger: "Twilio-API-Timeout >30s oder 429-Rate-Limit"
-
+    direct_mode_trigger: Twilio-API-Timeout >30s oder 429-Rate-Limit
   LC3_circuit_breaker:
     circuit_breaker_timeout_s: 30
     circuit_breaker_open_threshold: 3
     circuit_breaker_half_open_test_interval_s: 300
-
   LC4_failure_isolation:
     state_externalization: true
     idempotent_operations: true
     dependency_dlq_separate: true
-
   LC5_health_check:
     health_check_dependencies: []
     health_check_degraded_score: 0.7
     health_check_endpoint_or_file: /tmp/df-communication-twilio-adapter-health.json
-
-# === ENV-Var-Gated Real-Integration ===
-
 env_var_gating:
-  DF_TWILIO_REAL_ENABLED: false  # Default Mock
-  PHRONESIS_TICKET_REQUIRED: true # Live-Mode (AC_* ohne _test_)
+  DF_TWILIO_REAL_ENABLED: false
+  PHRONESIS_TICKET_REQUIRED: true
   default_mode: mock
-
-# === Operatives ===
-
 operations:
   output_path: ~/Projects/dark-factories/df-communication-twilio-adapter/
   state_file: ~/.df-communication-twilio-adapter/state.json
   jsonl_audit_path: branch-hub/audit/df-communication-twilio-adapter.jsonl
   stop_flag_path: /tmp/df-communication-twilio-adapter.stop
   health_file_path: /tmp/df-communication-twilio-adapter-health.json
-  schedule: "On-demand (per Booking-Event + Pre-Stay Cadence)"
-
-# === rho-Schaetzung ===
-
+  schedule: On-demand (per Booking-Event + Pre-Stay Cadence)
 rho_estimate:
   annual_eur: 80000
-  reason: "Pre-Stay-Reminder + Upsell-Pipeline + Post-Stay Review-Request via SMS/WhatsApp"
+  reason: Pre-Stay-Reminder + Upsell-Pipeline + Post-Stay Review-Request via SMS/WhatsApp
   schwer_quantifizierbar: false
   rho_validation_source: unvalidated
-
-# === CRUX-Bindung ===
-
 crux_bindung:
-  K_0: "indirekt (Upsell-Revenue via WhatsApp-Business)"
-  Q_0: "Gast-Privacy-Schutz (E.164-Validation + Tenant-Isolation)"
-  I_min: "strukturierte Twilio-Pipeline (250 LOC + Tests)"
-  W_0: "Hotel-Front-Desk-Personal-Zeit reduziert"
+  K_0: indirekt (Upsell-Revenue via WhatsApp-Business)
+  Q_0: Gast-Privacy-Schutz (E.164-Validation + Tenant-Isolation)
+  I_min: strukturierte Twilio-Pipeline (250 LOC + Tests)
+  W_0: Hotel-Front-Desk-Personal-Zeit reduziert
+activation_gates:
+  internal_real_mode:
+    env_var: DF-COMMUNICATION-TWILIO-ADAPTER_INTERNAL_REAL_ENABLED
+    default: false
+    description: Echte Daten-Verarbeitung lokal/sandbox, KEIN External-Output
+  external_real_mode:
+    env_var: DF-COMMUNICATION-TWILIO-ADAPTER_REAL_ENABLED
+    default: false
+    description: Real-Mode mit External-Output (Phronesis-Sign-Off Pflicht)
+    requires:
+      phronesis_ticket_env: PHRONESIS_TICKET
+      signoff_id_env: OPERATOR_SIGNOFF_ID
+  external_output_gate:
+    env_var_signoff_id: OPERATOR_SIGNOFF_ID
+    default: BLOCKED
+    description: Mechanischer Block fuer External-Communication ohne Sign-Off
+output_pipe_block:
+- external_api_call_unverified
+- external_email
+- external_webhook_publish
+- production_db_write_unverified

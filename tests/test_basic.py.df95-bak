@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 # K16-Trinity-AGGRESSIVE 2026-05-17
 def k16_lock(name):
@@ -28,6 +27,7 @@ Per env-var-gated-real-integration-default.md Pflicht-Tests:
 7. Tenant-ID-Pflicht
 8. Audit-Record DSGVO (body-hash statt body)
 """
+from __future__ import annotations
 
 import sys
 import pathlib
